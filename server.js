@@ -1,241 +1,152 @@
 const express = require("express");
 const cors = require("cors");
-const db = require("./db"); // Conexão MySQL configurada
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// ============================
-// 🔹 Listar funcionários
-// ============================
-app.get("/funcionarios", async (req, res) => {
-  try {
-    const [rows] = await db.query(
-      "SELECT matricula, nome, cargo, setor FROM funcionarios"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro ao listar funcionários:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================
-// 🔹 Listar acidentes
-// ============================
-app.get("/acidentes", async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT codigo, descricao FROM acidente");
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro ao listar acidentes:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================
-// 🔹 Listar doenças
-// ============================
-app.get("/doencas", async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT codigo, descricao FROM doenca");
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro ao listar doenças:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================
-// 🔹 Listar partes do corpo
-// ============================
-app.get("/corpo", async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT codigo, descricao FROM corpo");
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro ao listar partes do corpo:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================
-// 🔹 Listar empresas
-// ============================
-app.get("/empresa", async (req, res) => {
-  try {
-    const [rows] = await db.query(
-      "SELECT cnpj, nome, endereco, tel_empresa, cep FROM empresa"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro ao listar empresas:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================
-// 🔹 Cadastro de Acidente
-// ============================
-app.post("/cadastro", async (req, res) => {
-  try {
-    const {
-      matricula,
-      nome,
-      nascimento,
-      telefone,
-      setor,
-      funcao,
-      cnpj,
-      empresa,
-      tel_empresa,
-      endereco,
-      cep,
-      tipo_cat,
-      ult_dia,
-      comun_policia,
-      houve_obito,
-      data_obito,
-      cod_doenca,
-      situacao_doenca,
-      cod_acidente,
-      situacao_acidente,
-      inicia_cat,
-      tipo_acidente,
-      data_acidente,
-      horas_trab,
-      hora_acidente,
-      cod_parte_corpo,
-      parte_corpo,
-      lateralidade,
-      local_acidente,
-      testemunha,
-      sofreu_acidente,
-      epi,
-      descricao_acidente,
-      prov_acidente
-    } = req.body;
-
-    // 🔹 Gera número sequencial do relatório
-    const anoAtual = new Date().getFullYear();
-
-    const [rows] = await db.query(
-      "SELECT relatorio FROM cadastro WHERE relatorio LIKE ? ORDER BY id DESC LIMIT 1",
-      [`%/${anoAtual}`]
-    );
-
-    let numero = 1;
-    if (rows.length > 0) {
-      const ultimoRelatorio = rows[0].relatorio; // ex: "05/2025"
-      const ultimoNumero = parseInt(ultimoRelatorio.split("/")[0]);
-      numero = ultimoNumero + 1;
-    }
-
-    const relatorio = `${String(numero).padStart(2, "0")}/${anoAtual}`;
-
-    // 🔹 Lista de colunas
-    const colunas = [
-      "relatorio", "matricula", "nome", "nascimento", "telefone", "setor", "funcao", "cnpj", "empresa", "tel_empresa",
-      "endereco", "cep", "tipo_cat", "ult_dia", "comun_policia", "houve_obito", "data_obito", "cod_doenca", "situacao_doenca",
-      "cod_acidente", "situacao_acidente", "inicia_cat", "tipo_acidente", "data_acidente", "horas_trab", "hora_acidente",
-      "cod_parte_corpo", "parte_corpo", "lateralidade", "local_acidente", "testemunha", "sofreu_acidente", "epi",
-      "descricao_acidente", "prov_acidente"
-    ];
-
-    // 🔹 Valores
-    const values = [
-      relatorio, matricula, nome, nascimento, telefone, setor, funcao, cnpj, empresa, tel_empresa,
-      endereco, cep, tipo_cat, ult_dia, comun_policia, houve_obito, data_obito, cod_doenca, situacao_doenca,
-      cod_acidente, situacao_acidente, inicia_cat, tipo_acidente, data_acidente, horas_trab, hora_acidente,
-      cod_parte_corpo, parte_corpo, lateralidade, local_acidente, testemunha, sofreu_acidente, epi,
-      descricao_acidente, prov_acidente
-    ];
-
-    const placeholders = Array(values.length).fill("?").join(", ");
-    const sql = `
-      INSERT INTO cadastro (${colunas.join(", ")})
-      VALUES (${placeholders})
-    `;
-
-    await db.query(sql, values);
-
-    res.json({
-      message: "Cadastro salvo com sucesso!",
-      relatorio
-    });
-  } catch (error) {
-    console.error("❌ Erro ao salvar relatório:", error);
-    res.status(500).json({ error: "Erro ao salvar relatório" });
-  }
-});
-
-// ============================
-// 🔹 Gerar próximo número de relatório
-// ============================
-app.get("/gerar-relatorio", async (req, res) => {
-  try {
-    const anoAtual = new Date().getFullYear();
-
-    const [rows] = await db.query(
-      "SELECT relatorio FROM cadastro WHERE relatorio LIKE ? ORDER BY id DESC LIMIT 1",
-      [`%/${anoAtual}`]
-    );
-
-    let numero = 1;
-    if (rows.length > 0) {
-      const ultimoRelatorio = rows[0].relatorio;
-      const ultimoNumero = parseInt(ultimoRelatorio.split("/")[0]);
-      numero = ultimoNumero + 1;
-    }
-
-    const proximoRelatorio = `${String(numero).padStart(2, "0")}/${anoAtual}`;
-    res.json({ numeroRelatorio: proximoRelatorio });
-  } catch (err) {
-    console.error("❌ Erro ao gerar número do relatório:", err);
-    res.status(500).json({ error: "Erro ao gerar número do relatório" });
-  }
-});
-
-// ============================
-const express = require("express");
-const mysql = require("mysql2/promise");
-const cors = require("cors");
 const path = require("path");
+const session = require("express-session");
+const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
+const fs = require("fs");
+
+// Importa middleware e rotas
+const protegerRotas = require("./middlewares/authMiddleware");
+const authRoutes = require("./routes/authRoutes");
+const funcionarioRoutes = require("./routes/funcionarioRoutes");
+const acidentesRoutes = require("./routes/acidentesRoutes");
+const doencaRoutes = require("./routes/doencaRoutes");
+const corpoRoutes = require("./routes/corpoRoutes");
+const agenteRoutes = require("./routes/agenteRoutes");
+const empresasRoutes = require("./routes/empresasRoutes");
+const cadastroRoutes = require("./routes/cadastroRoutes");
+const relatorioAcidenteRoutes = require("./routes/relatorioAcidenteRoutes");
+const relatoriogeralRoutes = require("./routes/relatoriogeralRoutes");
+const relatorioperiodoRoutes = require("./routes/relatorioperiodoRoutes");
+const relatorioEstatisticoRoutes = require("./routes/relatorioEstatisticoRoutes");
+const relatorioEstatisticoFuncaoRoutes = require("./routes/relatorioEstatisticoFuncaoRoutes");
+const relatorioEstatisticoSetorRoutes = require("./routes/relatorioEstatisticoSetorRoutes");
+const listarCadastroRoutes = require("./routes/listarCadastroRoutes");
+const recuperarSenhaRoutes = require("./routes/recuperarSenhaRoutes");
+const usuarioRoutes = require("./routes/usuarioRoutes");
+const epiRoutes = require("./routes/epiRoutes");
+const epiFuncionarioRoutes = require("./routes/epiFuncionarioRoutes");
+const relatorioEpiRoutes = require("./routes/relatorioEpiRoutes");
+const relatorioEpiFuncionarioRoutes = require("./routes/relatorioEpiFuncionarioRoutes");
 
 const app = express();
-const PORT = 3000;
 
-// =============================
-// 🔹 Middlewares
-// =============================
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173", // caso use Vite localmente
+  "https://segurancatrabalho.netlify.app" // ✅ seu site publicado
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (ex: Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Origem não permitida pelo CORS"));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Log de todas as requisições
-app.use((req, res, next) => {
-  console.log(`📡 [${req.method}] ${req.url}`);
-  next();
+// Sessão
+app.use(session({
+    secret: "chave_super_secreta",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }
+}));
+
+// ============================
+// 🔹 Rotas Públicas (API e HTML de Login)
+// ============================
+
+// Status sempre acessível
+app.get("/status", (req, res) => {
+    res.send("✅ Servidor rodando e acessível!");
 });
 
-// Servir arquivos estáticos (HTML/CSS/JS) da pasta frontend
+// Rotas de recuperação de senha
+app.use("/", recuperarSenhaRoutes);
+
+// Rotas de autenticação (Login e Logout)
+app.use("/", authRoutes);
+
+// Página inicial → login.html (só serve se existir localmente)
+app.get("/", (req, res) => {
+  const localLogin = path.join(__dirname, "../frontend/login.html");
+  if (fs.existsSync(localLogin)) {
+    res.sendFile(localLogin);
+  } else {
+    res.send("✅ API Segurança do Trabalho rodando com sucesso!");
+  }
+});
+
+
+// ============================
+// 🔹 Middleware global de proteção (SÓ A PARTIR DAQUI TUDO É PRIVADO)
+// ============================
+app.use(protegerRotas);
+
+// ============================
+// 🔹 Proteção de todas as páginas .html
+// ============================
+app.get(/.*\.html$/, (req, res) => {
+    console.log(`[AUTH] Servindo página protegida: ${req.path}`);
+    res.sendFile(path.join(__dirname, "../frontend", req.path));
+});
+
+// ============================
+// 🔹 Rotas Privadas (Arquivos estáticos, Páginas HTML e APIs)
+// ============================
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// =============================
-// 🔹 Banco de Dados
-// =============================
-const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "seguranca_trabalho",
+// Rotas de API privadas
+app.use("/funcionarios", funcionarioRoutes);
+app.use("/acidentes", acidentesRoutes);
+app.use("/doenca", doencaRoutes);
+app.use("/corpo", corpoRoutes);
+app.use("/agente", agenteRoutes);
+app.use("/empresa", empresasRoutes);
+app.use("/cadastro", cadastroRoutes);
+app.use("/", relatorioAcidenteRoutes);
+app.use("/relatorios-geral", relatoriogeralRoutes);
+app.use("/relatorios-periodo", relatorioperiodoRoutes);
+app.use("/relatorios-estatistico", relatorioEstatisticoRoutes);
+app.use("/relatorios-estatistico", relatorioEstatisticoFuncaoRoutes);
+app.use("/relatorios-estatistico", relatorioEstatisticoSetorRoutes);
+app.use("/", listarCadastroRoutes);
+app.use(usuarioRoutes);
+app.use(epiRoutes);
+app.use("/epi_funcionario", epiFuncionarioRoutes);
+app.use("/", relatorioEpiRoutes);                 // → /relatorios-epi-geral
+app.use("/", relatorioEpiFuncionarioRoutes);      // → /relatorios-epi-funcionario e /funcionarios-nomes
+
+// ============================
+// 🔹 Rota manual para testar envio de e-mails de EPIs vencidos
+// ============================
+app.get("/verificar-epis-vencidos", async (req, res) => {
+  try {
+    await dispararEmailsEpiVencido();
+    res.send("✅ Verificação manual de EPIs vencidos concluída (verifique o e-mail).");
+  } catch (err) {
+    console.error("Erro ao executar verificação manual:", err);
+    res.status(500).send("Erro ao executar verificação manual de EPIs vencidos.");
+  }
 });
 
-// =============================
-// 🔹 Iniciar Servidor
-// =============================
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-  console.log(`📂 Acesse o frontend em http://localhost:${PORT}/index.html`);
+// ============================
+// 🔹 Rodar servidor (Render usa process.env.PORT)
+// ============================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
 });
 
+// ============================
+// 🔹 Inicia cron automático
+// ============================
+require("./cron/verificarEpiVencido");
