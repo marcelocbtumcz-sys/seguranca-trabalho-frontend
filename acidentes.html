@@ -464,7 +464,7 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
   // -------------------------
   async function carregarFuncionarios() {
     try {
-      const res = await fetch(`${API_BASE}/funcionarios`);
+      const res = await fetchComAuth(`${API_BASE}/funcionarios`);
       const funcionarios = await res.json();
       const select = document.getElementById("matricula");
       select.innerHTML = '<option value="">Selecione</option>';
