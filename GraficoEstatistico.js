@@ -1,70 +1,54 @@
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import ChartDataLabels from "chartjs-plugin-datalabels";
+<canvas id="grafico"></canvas>
 
-// Registrar módulos do Chart.js
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script src="config.js"></script> <!-- usa seu API_BASE -->
 
-export default function GraficoEstatistico({ dados }) {
-  const labels = dados.map((d) => d.label);
-  const valores = dados.map((d) => d.total);
+<script>
+  async function carregarGrafico() {
+    const ctx = document.getElementById("grafico").getContext("2d");
 
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Acidentes",
-        data: valores,
-        backgroundColor: "#4A90E2",
-      },
-    ],
-  };
+    try {
+      const res = await fetch(`${API_BASE}/relatorio-acidente/estatisticas`);
+      const dados = await res.json();
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false, // 🔹 Esconde legenda
-      },
-      tooltip: {
-        enabled: true,
-      },
-      title: {
-        display: true,
-        text: "Relatório Estatístico Geral",
-      },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        color: "#000",
-        font: {
-          weight: "bold",
+      // Supondo que o backend retorne algo como [{ mes: "Janeiro", total: 5 }, ...]
+      const labels = dados.map(d => d.mes);
+      const valores = dados.map(d => d.total);
+
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Acidentes",
+            data: valores,
+            backgroundColor: "#4A90E2",
+          }]
         },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Relatório Estatístico Geral" },
+            datalabels: {
+              anchor: "end",
+              align: "end",
+              color: "#000",
+              font: { weight: "bold" },
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
         },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-        },
-      },
-    },
-  };
+        plugins: [ChartDataLabels],
+      });
 
-  return <Bar data={data} options={options} />;
-}
+    } catch (err) {
+      console.error("Erro ao carregar gráfico:", err);
+    }
+  }
+
+  carregarGrafico();
+</script>
