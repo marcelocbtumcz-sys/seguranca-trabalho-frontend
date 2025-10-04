@@ -3,9 +3,7 @@
 // ============================
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const session = require("express-session");
-const fs = require("fs");
 const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 
 // 🔹 Middlewares e rotas
@@ -58,51 +56,35 @@ app.use(cors({
 app.use(express.json());
 
 // ============================
-// 🔹 Sessão (com cookies cross-domain seguros)
+// 🔹 Sessão (cookies cross-domain seguros)
 // ============================
 app.use(session({
   secret: "chave_super_secreta",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,     // ✅ necessário no HTTPS (Render)
-    sameSite: "none"  // ✅ permite cookies entre Netlify ↔ Render
+    secure: true,     // HTTPS obrigatório no Render
+    sameSite: "none"  // permite Netlify <-> Render
   }
 }));
 
 // ============================
-// 🔹 Arquivos estáticos (frontend)
-// ============================
-// ⚠️ IMPORTANTE: vem ANTES das rotas protegidas
-app.use(express.static(path.join(__dirname, "../frontend")));
-
-// ============================
-// 🔹 Rotas Públicas
+// 🔹 Rotas Públicas (sem login)
 // ============================
 app.get("/status", (req, res) => {
-  res.send("✅ Servidor rodando e acessível!");
+  res.send("✅ API Segurança do Trabalho rodando com sucesso!");
 });
 
 app.use("/", recuperarSenhaRoutes);
 app.use("/", authRoutes);
 
-// Página inicial → login.html (só serve localmente)
-app.get("/", (req, res) => {
-  const localLogin = path.join(__dirname, "../frontend/login.html");
-  if (fs.existsSync(localLogin)) {
-    res.sendFile(localLogin);
-  } else {
-    res.send("✅ API Segurança do Trabalho rodando com sucesso!");
-  }
-});
-
 // ============================
-// 🔹 Middleware global de proteção (tudo abaixo exige login)
+// 🔹 Middleware global (tudo abaixo exige login)
 // ============================
 app.use(protegerRotas);
 
 // ============================
-// 🔹 Rotas protegidas (API privadas)
+// 🔹 Rotas privadas (API protegida)
 // ============================
 app.use("/funcionarios", funcionarioRoutes);
 app.use("/acidentes", acidentesRoutes);
@@ -125,12 +107,12 @@ app.use("/", relatorioEpiRoutes);
 app.use("/", relatorioEpiFuncionarioRoutes);
 
 // ============================
-// 🔹 Rota manual para testar envio de e-mails
+// 🔹 Teste manual de e-mails (cron)
 // ============================
 app.get("/verificar-epis-vencidos", async (req, res) => {
   try {
     await dispararEmailsEpiVencido();
-    res.send("✅ Verificação manual de EPIs vencidos concluída (verifique o e-mail).");
+    res.send("✅ Verificação manual de EPIs vencidos concluída.");
   } catch (err) {
     console.error("Erro ao executar verificação manual:", err);
     res.status(500).send("Erro ao executar verificação manual de EPIs vencidos.");
@@ -138,7 +120,7 @@ app.get("/verificar-epis-vencidos", async (req, res) => {
 });
 
 // ============================
-// 🔹 Rodar servidor (Render usa process.env.PORT)
+// 🔹 Inicialização do servidor
 // ============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
