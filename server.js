@@ -1,13 +1,17 @@
+// ============================
+// 🔹 Importações principais
+// ============================
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
-const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 const fs = require("fs");
+const { dispararEmailsEpiVencido } = require("./cron/verificarEpiVencido");
 
-// Importa middleware e rotas
+// 🔹 Middlewares e rotas
 const protegerRotas = require("./middlewares/authMiddleware");
 const authRoutes = require("./routes/authRoutes");
+const recuperarSenhaRoutes = require("./routes/recuperarSenhaRoutes");
 const funcionarioRoutes = require("./routes/funcionarioRoutes");
 const acidentesRoutes = require("./routes/acidentesRoutes");
 const doencaRoutes = require("./routes/doencaRoutes");
@@ -22,7 +26,6 @@ const relatorioEstatisticoRoutes = require("./routes/relatorioEstatisticoRoutes"
 const relatorioEstatisticoFuncaoRoutes = require("./routes/relatorioEstatisticoFuncaoRoutes");
 const relatorioEstatisticoSetorRoutes = require("./routes/relatorioEstatisticoSetorRoutes");
 const listarCadastroRoutes = require("./routes/listarCadastroRoutes");
-const recuperarSenhaRoutes = require("./routes/recuperarSenhaRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const epiRoutes = require("./routes/epiRoutes");
 const epiFuncionarioRoutes = require("./routes/epiFuncionarioRoutes");
@@ -31,16 +34,18 @@ const relatorioEpiFuncionarioRoutes = require("./routes/relatorioEpiFuncionarioR
 
 const app = express();
 
+// ============================
+// 🔹 CORS (permite Netlify e localhost)
+// ============================
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173", // caso use Vite localmente
-  "https://segurancatrabalho.netlify.app" // ✅ seu site publicado
+  "https://segurancatrabalho.netlify.app" // ✅ seu domínio Netlify
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite requisições sem 'origin' (ex: Postman)
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // permite Postman
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
@@ -52,33 +57,36 @@ app.use(cors({
 
 app.use(express.json());
 
+// ============================
+// 🔹 Sessão (com cookies cross-domain seguros)
+// ============================
 app.use(session({
   secret: "chave_super_secreta",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,     // ✅ necessário, pois o Render usa HTTPS
-    sameSite: "none"  // ✅ permite que o Netlify acesse o cookie de sessão
+    secure: true,     // ✅ necessário no HTTPS (Render)
+    sameSite: "none"  // ✅ permite cookies entre Netlify ↔ Render
   }
 }));
 
+// ============================
+// 🔹 Arquivos estáticos (frontend)
+// ============================
+// ⚠️ IMPORTANTE: vem ANTES das rotas protegidas
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 // ============================
-// 🔹 Rotas Públicas (API e HTML de Login)
+// 🔹 Rotas Públicas
 // ============================
-
-// Status sempre acessível
 app.get("/status", (req, res) => {
-    res.send("✅ Servidor rodando e acessível!");
+  res.send("✅ Servidor rodando e acessível!");
 });
 
-// Rotas de recuperação de senha
 app.use("/", recuperarSenhaRoutes);
-
-// Rotas de autenticação (Login e Logout)
 app.use("/", authRoutes);
 
-// Página inicial → login.html (só serve se existir localmente)
+// Página inicial → login.html (só serve localmente)
 app.get("/", (req, res) => {
   const localLogin = path.join(__dirname, "../frontend/login.html");
   if (fs.existsSync(localLogin)) {
@@ -88,26 +96,14 @@ app.get("/", (req, res) => {
   }
 });
 
-
 // ============================
-// 🔹 Middleware global de proteção (SÓ A PARTIR DAQUI TUDO É PRIVADO)
+// 🔹 Middleware global de proteção (tudo abaixo exige login)
 // ============================
 app.use(protegerRotas);
 
 // ============================
-// 🔹 Proteção de todas as páginas .html
+// 🔹 Rotas protegidas (API privadas)
 // ============================
-app.get(/.*\.html$/, (req, res) => {
-    console.log(`[AUTH] Servindo página protegida: ${req.path}`);
-    res.sendFile(path.join(__dirname, "../frontend", req.path));
-});
-
-// ============================
-// 🔹 Rotas Privadas (Arquivos estáticos, Páginas HTML e APIs)
-// ============================
-app.use(express.static(path.join(__dirname, "../frontend")));
-
-// Rotas de API privadas
 app.use("/funcionarios", funcionarioRoutes);
 app.use("/acidentes", acidentesRoutes);
 app.use("/doenca", doencaRoutes);
@@ -125,11 +121,11 @@ app.use("/", listarCadastroRoutes);
 app.use(usuarioRoutes);
 app.use(epiRoutes);
 app.use("/epi_funcionario", epiFuncionarioRoutes);
-app.use("/", relatorioEpiRoutes);                 // → /relatorios-epi-geral
-app.use("/", relatorioEpiFuncionarioRoutes);      // → /relatorios-epi-funcionario e /funcionarios-nomes
+app.use("/", relatorioEpiRoutes);
+app.use("/", relatorioEpiFuncionarioRoutes);
 
 // ============================
-// 🔹 Rota manual para testar envio de e-mails de EPIs vencidos
+// 🔹 Rota manual para testar envio de e-mails
 // ============================
 app.get("/verificar-epis-vencidos", async (req, res) => {
   try {
