@@ -1,8 +1,12 @@
 // config.js
 // 🔹 Endereço base da sua API
-// Troque o IP se rodar em outro servidor
-// Se quiser usar localmente, pode colocar "http://localhost:3000"
-const API_BASE = "http://192.168.0.11:3000";
+// Quando estiver no Render, use o domínio gerado automaticamente.
+// Exemplo: "https://seguranca-backend.onrender.com"
+const API_BASE = window.location.hostname.includes("localhost")
+  ? "http://localhost:3000" // ✅ Usa local quando estiver rodando na sua máquina
+  : "https://seguranca-trabalho-backend.onrender.com"; // ✅ Link real do Render
+
+
 
 
 
