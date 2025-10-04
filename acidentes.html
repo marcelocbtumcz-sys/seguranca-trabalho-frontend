@@ -98,10 +98,12 @@
   </style>
 </head>
 <body>
+  
+<script src="js/config.js"></script>
 
-  <script src="js/config.js"></script>
+  <script src="/js/auth.js"></script>
 
-   <!-- Cabeçalho -->
+  <!-- Cabeçalho -->
   <div class="header">
     <!-- 🔹 Logo + texto -->
     <div class="d-flex align-items-center">
@@ -464,9 +466,7 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
   // -------------------------
   async function carregarFuncionarios() {
     try {
-      const res = await fetch(`${API_BASE}/funcionarios`, {
-      credentials: "include" // ✅ mantém login ativo entre Netlify e Render
-    });
+      const res = await fetch(`${API_BASE}/funcionarios`);
       const funcionarios = await res.json();
       const select = document.getElementById("matricula");
       select.innerHTML = '<option value="">Selecione</option>';
