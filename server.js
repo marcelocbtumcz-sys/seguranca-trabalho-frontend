@@ -52,13 +52,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// Sessão
 app.use(session({
-    secret: "chave_super_secreta",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
+  secret: "chave_super_secreta",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,     // ✅ necessário, pois o Render usa HTTPS
+    sameSite: "none"  // ✅ permite que o Netlify acesse o cookie de sessão
+  }
 }));
+
 
 // ============================
 // 🔹 Rotas Públicas (API e HTML de Login)
