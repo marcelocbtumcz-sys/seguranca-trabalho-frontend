@@ -459,15 +459,27 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
   // Lógica principal
   // -------------------------
   async function carregarFuncionarios() {
-    try {
-      const res = await fetch(`${API_BASE}/funcionarios`, {
-      credentials: "include"
-    });
-      const funcionarios = await res.json();
-      const select = document.getElementById("matricula");
-      select.innerHTML = '<option value="">Selecione</option>';
-      (funcionarios || []).forEach(func => {
-        const option = document.createElement("option");
+    try {
+      const res = await fetch(`${API_BASE}/funcionarios`, {
+      credentials: "include"
+    });
+    
+    // 🚨 NOVO: Checagem de status da resposta (401, 500, etc.)
+    if (!res.ok) {
+        // Lidar com erro 401 ou outro erro de servidor
+        console.error("Erro ao carregar funcionários:", res.status, await res.text());
+        const select = document.getElementById("matricula");
+        select.innerHTML = '<option value="">Erro de carregamento ou autenticação</option>';
+        return; // Sai da função
+    }
+      const funcionarios = await res.json();
+      const select = document.getElementById("matricula");
+      select.innerHTML = '<option value="">Selecione</option>';
+    
+      // ✅ Aqui o 'funcionarios' será sempre um array se a API retornar 200 e estiver correta
+    // E a linha abaixo não vai falhar se a resposta for 200
+      (funcionarios || []).forEach(func => {
+        const option = document.createElement("option");
         option.value = func.matricula ?? func.Matricula ?? "";
         option.textContent = func.matricula ?? func.Matricula ?? "";
         select.appendChild(option);
@@ -490,15 +502,25 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
     }
   }
 
-  async function carregarEmpresas() {
-    try {
-      const res = await fetch(`${API_BASE}/empresa`, {
-      credentials: "include"
-    });
-      const empresas = await res.json();
-      const select = document.getElementById("cnpj-empresa");
-      select.innerHTML = '<option value="">Selecione</option>';
-      (empresas || []).forEach(emp => {
+ async function carregarEmpresas() {
+    try {
+      const res = await fetch(`${API_BASE}/empresa`, {
+      credentials: "include"
+    });
+
+    // 🚨 NOVO: Checagem de status da resposta
+    if (!res.ok) {
+        console.error("Erro ao carregar empresas:", res.status, await res.text());
+        const select = document.getElementById("cnpj-empresa");
+        select.innerHTML = '<option value="">Erro de carregamento ou autenticação</option>';
+        return; // Sai da função
+    }
+      const empresas = await res.json();
+      const select = document.getElementById("cnpj-empresa");
+      select.innerHTML = '<option value="">Selecione</option>';
+    
+      // ✅ Agora 'empresas' será um array
+      (empresas || []).forEach(emp => {
         const option = document.createElement("option");
         option.value = emp.cnpj;
         option.textContent = emp.cnpj;
@@ -524,16 +546,35 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
     }
   }
 
-  async function carregarOpcoes(apiUrl, selectId, inputCodigoId) {
-    try {
-      const res = await fetch(apiUrl, {
-      credentials: "include"
-    });
-      const raw = await res.json();
-      const data = (raw || []).map(item => ({
-        codigo: item.codigo ?? item.Codigo ?? item.CODIGO ?? null,
-        descricao: item.descricao ?? item.Descricao ?? item.DESCRICAO ?? item.DESCRIPTION ?? ""
-      }));
+async function carregarOpcoes(apiUrl, selectId, inputCodigoId) {
+    try {
+      const res = await fetch(apiUrl, {
+      credentials: "include"
+    });
+    
+    // 🚨 NOVO: Checagem de status da resposta
+    if (!res.ok) {
+        console.error("Erro ao carregar opções de", selectId, res.status, await res.text());
+        const select = document.getElementById(selectId);
+        if (select) select.innerHTML = '<option value="">Erro de carregamento ou autenticação</option>';
+        return; // Sai da função
+    }
+
+      const raw = await res.json();
+    
+    // ⚠️ Se raw não for um Array (e a API estiver correta), o erro é de formato
+    if (!Array.isArray(raw)) {
+        console.error("Resposta da API não é um Array:", raw);
+        const select = document.getElementById(selectId);
+        if (select) select.innerHTML = '<option value="">Erro de formato da API</option>';
+        return;
+    }
+    
+      // ✅ A linha abaixo agora é segura, pois 'raw' é o array ou a função saiu antes
+      const data = raw.map(item => ({ // Removi o (raw || []).map, pois a checagem é melhor
+        codigo: item.codigo ?? item.Codigo ?? item.CODIGO ?? null,
+        descricao: item.descricao ?? item.Descricao ?? item.DESCRICAO ?? item.DESCRIPTION ?? ""
+      }));
       const select = document.getElementById(selectId);
       const inputCodigo = inputCodigoId ? document.getElementById(inputCodigoId) : null;
       select.innerHTML = '<option value="">Selecione</option>';
@@ -558,11 +599,16 @@ atualizarContador("prov_acidente", "prov_acidente_count", 320);
 
   // limpa todos os inputs/selects/textarea (mantém #relatorio até buscarmos o próximo)
 async function fetchNextNumero() {
-  try {
-    const res = await fetch(`${API_BASE}/cadastro/gerar-relatorio`, {
-      credentials: "include"
-    });
-    if (!res.ok) throw new Error("Erro ao buscar número do relatório");
+  try {
+    const res = await fetch(`${API_BASE}/cadastro/gerar-relatorio`, {
+      credentials: "include"
+    });
+    
+    // ✅ Já existia, mas garante que o erro será visível!
+    if (!res.ok) {
+      console.error("Detalhes do erro:", res.status, await res.text()); // Adicionado log de detalhes
+      throw new Error(`Erro ao buscar número do relatório (Status: ${res.status})`);
+    }
 
     const data = await res.json();
     console.log("🔹 Resposta crua:", data);
@@ -776,5 +822,6 @@ situacaoDoenca.addEventListener("change", () => {
 
 </body>
 </html>
+
 
 
