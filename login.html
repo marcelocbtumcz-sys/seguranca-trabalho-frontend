@@ -172,13 +172,12 @@
     const senha = document.getElementById("senha").value;
 
     try {
-      const response = await fetch(`${API_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, senha }),
-        credentials: "include"   // 🔹 ESSENCIAL
-      });
-
+     const response = await fetch(`${API_BASE}/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ usuario, senha }),
+  credentials: "include"   // ⚠️ ESSENCIAL para enviar e receber cookies
+});
       const data = await response.json();
 
       if (response.ok && data.success) {
@@ -249,5 +248,6 @@ document.getElementById("formEsqueciSenha").addEventListener("submit", async fun
 
 </body>
 </html>
+
 
 
