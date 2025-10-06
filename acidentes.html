@@ -358,8 +358,14 @@
     </select>
   </div>
   <div class="col">
-    <label>Testemunha</label>
-    <input type="text" id="testemunha" class="form-control" name="testemunha">
+   <label for="testemunha" class="form-label">Testemunha</label>
+<input 
+  type="text" 
+  id="testemunha" 
+  name="testemunha" 
+  class="form-control" 
+  maxlength="100">
+<small id="testemunha_count" class="form-text text-muted">0 / 100 caracteres</small>
   </div>
 </div>
 
@@ -419,6 +425,7 @@ function atualizarContador(idTextarea, idContador, max) {
 // Aplicar nos dois campos
 atualizarContador("descricao_acidente", "descricao_acidente_count", 320);
 atualizarContador("prov_acidente", "prov_acidente_count", 320);
+atualizarContador("testemunha", "testemunha_count", 100); // 👈 novo campo
 </script>
 
 <div class="d-flex gap-2 mt-3">
@@ -822,6 +829,7 @@ situacaoDoenca.addEventListener("change", () => {
 
 </body>
 </html>
+
 
 
 
